@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DevOps WebApp</title>
+</head>
+<body>
+  <h1>Frontend Running</h1>
+  <div id="api-response"></div>
+
+  <script>
+    fetch("/api")
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById("api-response").innerText =
+          "Backend says: " + d.message;
+      });
+  </script>
+</body>
+</html>
