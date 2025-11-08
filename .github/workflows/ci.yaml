@@ -1,4 +1,4 @@
-name: CI-CD updated
+name: CI-CD
 
 on:
   push:
@@ -9,31 +9,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # checkout
+      
       - name: Checkout
         uses: actions/checkout@v4
 
-      # frontend dependencies
+      
       - name: Frontend Setup
         working-directory: ./frontend
         run: |
           npm install
 
-      # backend dependencies
+      
       - name: Backend Setup
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # login docker hub
+      
       - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # build images
+      
       - name: Build Backend Image
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USER }}/backend-app:latest ./backend
@@ -42,7 +42,7 @@ jobs:
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest ./frontend
 
-      # push images
+      
       - name: Push Backend Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
@@ -50,18 +50,39 @@ jobs:
       - name: Push Frontend Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest
-      - name: Scan Backend Image
+
+      - name : security scan
         uses: aquasecurity/trivy-action@master
         with:
-         image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
-         format: table
-         exit-code: 0
+          image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
+       # 🟦 Install Kubectl
+      - name: Install kubectl
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y kubectl
 
-      - name: Scan Frontend Image
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest
-          format: table
-          exit-code: 0
+      # 🟩 Install Minikube
+      - name: Install Minikube
+        run: |
+          curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube /usr/local/bin/
 
- 
+      # 🟨 Start Minikube
+      - name: Start Minikube
+        run: |
+          sudo minikube start --driver=docker
+          kubectl get nodes
+
+      # 🟧 Apply Kubernetes manifests
+      - name: Deploy Backend & Frontend
+        run: |
+          kubectl apply -f backend-k8s/backend-deployment.yaml
+          kubectl apply -f backend-k8s/backend-service.yaml
+          kubectl apply -f backend-k8s/frontend-deployment.yaml
+          kubectl apply -f backend-k8s/frontend-service.yaml
+          kubectl get all
+
+      # 🟪 Verify Deployment
+      - name: Verify Services
+        run: |
+          kubectl get svc
