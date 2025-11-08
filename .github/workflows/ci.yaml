@@ -56,9 +56,13 @@ jobs:
         with:
           image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
 
-      - name: Install kubectl
+      - name: Install dependencies
         run: |
           sudo apt-get update -y
+          sudo apt-get install -y conntrack socat ebtables
+
+      - name: Install kubectl
+        run: |
           sudo apt-get install -y kubectl
 
       - name: Install Minikube
