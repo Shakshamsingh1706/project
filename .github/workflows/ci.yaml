@@ -114,3 +114,29 @@ jobs:
           sleep 60
           kubectl get applications -n argocd
           kubectl get pods -A
+            # 🟦 Deploy Prometheus and Grafana for monitoring
+      - name: Deploy Prometheus and Grafana
+        run: |
+          echo "📦 Deploying Prometheus and Grafana..."
+          kubectl apply -f monitoring/prometheus-deployment.yaml
+          kubectl apply -f monitoring/prometheus-service.yaml
+          kubectl apply -f monitoring/grafana-deployment.yaml
+          kubectl apply -f monitoring/grafana-service.yaml
+          echo "✅ Monitoring stack deployed!"
+
+      # 🧩 Verify monitoring setup
+      - name: Verify Monitoring Components
+        run: |
+          kubectl get pods -n default
+          kubectl get svc -n default
+          echo "✅ Prometheus and Grafana services are running"
+
+      # 🔁 Port-forward temporarily (for testing inside runner)
+      - name: Test Monitoring Access
+        run: |
+          nohup kubectl port-forward svc/prometheus-service 9090:9090 &
+          nohup kubectl port-forward svc/grafana-service 3000:3000 &
+          sleep 10
+          curl -I http://localhost:9090 || echo "Prometheus not reachable"
+          curl -I http://localhost:3000 || echo "Grafana not reachable"
+ 
