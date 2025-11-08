@@ -56,33 +56,31 @@ jobs:
         with:
           image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
 
-      - name: Install dependencies
+      - name: Install dependencies for Minikube
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y conntrack socat ebtables
+          sudo apt-get install -y conntrack socat ebtables curl
+          CRICTL_VERSION="v1.29.0"
+          wget https://github.com/kubernetes-sigs/cri-tools/releases/download/${CRICTL_VERSION}/crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
+          sudo tar zxvf crictl-${CRICTL_VERSION}-linux-amd64.tar.gz -C /usr/local/bin
+          rm -f crictl-${CRICTL_VERSION}-linux-amd64.tar.gz
 
-      - name: Install kubectl
+      # ⚙️ Start Minikube
+      - name: Start Minikube
         run: |
-          sudo apt-get install -y kubectl
-
-      - name: Install Minikube
-        run: |
-          curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-          sudo install minikube /usr/local/bin/
-
-      - name: Start Minikube (using none driver)
-        run: |
-          sudo minikube start --driver=none
+          sudo minikube start --driver=none --force
           sudo chmod -R a+r ~/.kube ~/.minikube
+          kubectl cluster-info
           kubectl get nodes
 
-      - name: Apply Kubernetes manifests
+      # 🚀 Deploy to Kubernetes
+      - name: Deploy to Minikube
         run: |
           kubectl apply -f backend-k8s/backend-deployment.yaml
           kubectl apply -f backend-k8s/backend-service.yaml
           kubectl apply -f backend-k8s/frontend-deployment.yaml
           kubectl apply -f backend-k8s/frontend-service.yaml
-          kubectl get all
+          kubectl get pods -A
 
       # 🟪 Verify Deployment
       - name: Verify Services
