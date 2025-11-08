@@ -91,3 +91,26 @@ jobs:
           kubectl get pods -A
           echo "✅ Services:"
           kubectl get svc -A
+            # 🧠 Install Argo CD on Minikube
+      - name: Install Argo CD
+        run: |
+          kubectl create namespace argocd || true
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+          echo "⏳ Waiting for ArgoCD pods to be ready..."
+          kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s
+          kubectl get pods -n argocd
+
+      # 🧾 Create Argo CD Application (from your repo)
+      - name: Apply Argo CD Application
+        run: |
+          kubectl apply -f argocd/application.yaml
+          echo "✅ Argo CD Application created successfully!"
+          kubectl get applications -n argocd
+
+      # 🔍 Verify Application Sync status
+      - name: Verify Argo CD App
+        run: |
+          echo "⏳ Waiting for app sync..."
+          sleep 60
+          kubectl get applications -n argocd
+          kubectl get pods -A
