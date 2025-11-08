@@ -55,26 +55,24 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
-       # 🟦 Install Kubectl
+
       - name: Install kubectl
         run: |
           sudo apt-get update -y
           sudo apt-get install -y kubectl
 
-      # 🟩 Install Minikube
       - name: Install Minikube
         run: |
           curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
           sudo install minikube /usr/local/bin/
 
-      # 🟨 Start Minikube
-      - name: Start Minikube
+      - name: Start Minikube (using none driver)
         run: |
-          sudo minikube start --driver=docker
+          sudo minikube start --driver=none
+          sudo chmod -R a+r ~/.kube ~/.minikube
           kubectl get nodes
 
-      # 🟧 Apply Kubernetes manifests
-      - name: Deploy Backend & Frontend
+      - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f backend-k8s/backend-deployment.yaml
           kubectl apply -f backend-k8s/backend-service.yaml
