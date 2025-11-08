@@ -9,77 +9,85 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout Code
+      # 🧩 Step 1: Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Frontend
+      # 🧱 Step 2: Setup Frontend dependencies
       - name: Setup Frontend
         working-directory: ./frontend
         run: |
           npm install
 
-      # 3️⃣ Setup Backend
+      # 🧱 Step 3: Setup Backend dependencies
       - name: Setup Backend
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4️⃣ Login to DockerHub
+      # 🐳 Step 4: Docker Login
       - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 5️⃣ Build & Push Backend Image
-      - name: Build & Push Backend Image
+      # 🏗️ Step 5: Build Docker images
+      - name: Build Docker Images
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USER }}/backend-app:latest ./backend
-          docker push ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
-
-      # 6️⃣ Build & Push Frontend Image
-      - name: Build & Push Frontend Image
-        run: |
           docker build -t ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest ./frontend
+
+      # 📤 Step 6: Push Docker images to DockerHub
+      - name: Push Docker Images
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
           docker push ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest
 
-      # 7️⃣ Security Scan
-      - name: Security Scan with Trivy
+      # 🧪 Step 7: Security scan (Trivy)
+      - name: Security Scan - Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
 
-      # 8️⃣ Install Dependencies for Minikube
-      - name: Install Minikube Dependencies
+      # ⚙️ Step 8: Install Minikube dependencies
+      - name: Install Minikube dependencies
         run: |
           sudo apt-get update -y
           sudo apt-get install -y conntrack socat ebtables curl
-          sudo systemctl start docker
-          docker info
-          wget https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-          sudo install minikube-linux-amd64 /usr/local/bin/minikube
-          rm minikube-linux-amd64
+          echo "✅ Dependencies installed successfully!"
 
-      # 9️⃣ Start Minikube with Docker driver (No Root)
+      # 🚀 Step 9: Install Minikube & Kubectl
+      - name: Install Minikube and Kubectl
+        run: |
+          curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+          sudo install minikube-linux-amd64 /usr/local/bin/minikube
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+          minikube version
+          kubectl version --client
+
+      # 🧰 Step 10: Start Minikube (user-level, no sudo)
       - name: Start Minikube
         run: |
-          sudo minikube delete || true
-          sudo minikube start --driver=docker --force
-          sudo minikube status
-          sudo minikube kubectl -- get nodes
+          minikube delete || true
+          minikube start --driver=docker --force
+          kubectl cluster-info
+          kubectl get nodes
 
-      # 🔟 Deploy to Kubernetes
-      - name: Deploy to Kubernetes (Minikube)
+      # 📦 Step 11: Deploy backend and frontend to Kubernetes
+      - name: Deploy to Kubernetes
         run: |
-          sudo minikube kubectl -- apply -f backend-k8s/backend-deployment.yaml
-          sudo minikube kubectl -- apply -f backend-k8s/backend-service.yaml
-          sudo minikube kubectl -- apply -f backend-k8s/frontend-deployment.yaml
-          sudo minikube kubectl -- apply -f backend-k8s/frontend-service.yaml
-          sudo minikube kubectl -- get pods -A
+          kubectl apply -f backend-k8s/backend-deployment.yaml
+          kubectl apply -f backend-k8s/backend-service.yaml
+          kubectl apply -f backend-k8s/frontend-deployment.yaml
+          kubectl apply -f backend-k8s/frontend-service.yaml
 
-      # 1️⃣1️⃣ Verify Services
-      - name: Verify Kubernetes Services
+      # 🔍 Step 12: Verify deployments
+      - name: Verify Deployment
         run: |
-          sudo minikube kubectl -- get svc -A
+          echo "✅ Pods:"
+          kubectl get pods -A
+          echo "✅ Services:"
+          kubectl get svc -A
