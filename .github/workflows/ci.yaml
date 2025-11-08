@@ -50,11 +50,18 @@ jobs:
       - name: Push Frontend Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest
-      - name: Security Scan with Trivy
+      - name: Scan Backend Image
         uses: aquasecurity/trivy-action@master
         with:
-         image-ref: ${{ secrets.DOCKER_USERNAME }}/devops-webapp:latest
+         image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
          format: table
          exit-code: 0
-         ignore-unfixed: true
+
+      - name: Scan Frontend Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest
+          format: table
+          exit-code: 0
+
  
