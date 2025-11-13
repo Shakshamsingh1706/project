@@ -9,56 +9,56 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 🧩 Step 1: Checkout repository
+      # Step 1: Checkout repository
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 🧱 Step 2: Setup Frontend dependencies
+      #  Step 2: Setup Frontend dependencies
       - name: Setup Frontend
         working-directory: ./frontend
         run: |
           npm install
 
-      # 🧱 Step 3: Setup Backend dependencies
+      #  Step 3: Setup Backend dependencies
       - name: Setup Backend
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 🐳 Step 4: Docker Login
+      #  Step 4: Docker Login
       - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 🏗️ Step 5: Build Docker images
+      # Step 5: Build Docker images
       - name: Build Docker Images
         run: |
           docker build -t ${{ secrets.DOCKERHUB_USER }}/backend-app:latest ./backend
           docker build -t ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest ./frontend
 
-      # 📤 Step 6: Push Docker images to DockerHub
+      #  Step 6: Push Docker images to DockerHub
       - name: Push Docker Images
         run: |
           docker push ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
           docker push ${{ secrets.DOCKERHUB_USER }}/frontend-app:latest
 
-      # 🧪 Step 7: Security scan (Trivy)
+      #  Step 7: Security scan (Trivy)
       - name: Security Scan - Trivy
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ secrets.DOCKERHUB_USER }}/backend-app:latest
 
-      # ⚙️ Step 8: Install Minikube dependencies
+      #  Step 8: Install Minikube dependencies
       - name: Install Minikube dependencies
         run: |
           sudo apt-get update -y
           sudo apt-get install -y conntrack socat ebtables curl
-          echo "✅ Dependencies installed successfully!"
+          echo " Dependencies installed successfully!"
 
-      # 🚀 Step 9: Install Minikube & Kubectl
+      #  Step 9: Install Minikube & Kubectl
       - name: Install Minikube and Kubectl
         run: |
           curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
@@ -68,7 +68,7 @@ jobs:
           minikube version
           kubectl version --client
 
-      # 🧰 Step 10: Start Minikube (user-level, no sudo)
+      #  Step 10: Start Minikube (user-level, no sudo)
       - name: Start Minikube
         run: |
           minikube delete || true
@@ -76,7 +76,7 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
-      # 📦 Step 11: Deploy backend and frontend to Kubernetes
+      #  Step 11: Deploy backend and frontend to Kubernetes
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f backend-k8s/backend-deployment.yaml
@@ -84,54 +84,54 @@ jobs:
           kubectl apply -f backend-k8s/frontend-deployment.yaml
           kubectl apply -f backend-k8s/frontend-service.yaml
 
-      # 🔍 Step 12: Verify deployments
+      #  Step 12: Verify deployments
       - name: Verify Deployment
         run: |
-          echo "✅ Pods:"
+          echo " Pods:"
           kubectl get pods -A
-          echo "✅ Services:"
+          echo " Services:"
           kubectl get svc -A
-            # 🧠 Install Argo CD on Minikube
+            #  Install Argo CD on Minikube
       - name: Install Argo CD
         run: |
           kubectl create namespace argocd || true
           kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-          echo "⏳ Waiting for ArgoCD pods to be ready..."
+          echo " Waiting for ArgoCD pods to be ready..."
           kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s
           kubectl get pods -n argocd
 
-      # 🧾 Create Argo CD Application (from your repo)
+      #  Create Argo CD Application (from your repo)
       - name: Apply Argo CD Application
         run: |
           kubectl apply -f argocd/application.yaml
-          echo "✅ Argo CD Application created successfully!"
+          echo " Argo CD Application created successfully!"
           kubectl get applications -n argocd
 
-      # 🔍 Verify Application Sync status
+      #  Verify Application Sync status
       - name: Verify Argo CD App
         run: |
-          echo "⏳ Waiting for app sync..."
+          echo " Waiting for app sync..."
           sleep 60
           kubectl get applications -n argocd
           kubectl get pods -A
-            # 🟦 Deploy Prometheus and Grafana for monitoring
+            #  Deploy Prometheus and Grafana for monitoring
       - name: Deploy Prometheus and Grafana
         run: |
-          echo "📦 Deploying Prometheus and Grafana..."
+          echo " Deploying Prometheus and Grafana..."
           kubectl apply -f monitoring/prometheus-deployment.yaml
           kubectl apply -f monitoring/prometheus-service.yaml
           kubectl apply -f monitoring/grafana-deployment.yaml
           kubectl apply -f monitoring/grafana-service.yaml
-          echo "✅ Monitoring stack deployed!"
+          echo " Monitoring stack deployed!"
 
-      # 🧩 Verify monitoring setup
+      #  Verify monitoring setup
       - name: Verify Monitoring Components
         run: |
           kubectl get pods -n default
           kubectl get svc -n default
-          echo "✅ Prometheus and Grafana services are running"
+          echo " Prometheus and Grafana services are running"
 
-      # 🔁 Port-forward temporarily (for testing inside runner)
+      #  Port-forward temporarily (for testing inside runner)
       - name: Test Monitoring Access
         run: |
           nohup kubectl port-forward svc/prometheus-service 9090:9090 &
